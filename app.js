@@ -13,5 +13,5 @@ app.use((req, res, next) => {
   });
 
 app.use('/video', stuffRoutes);
-//app.use('/rtsp', streamRoutes);
+app.use('/rtsp', streamRoutes);
 module.exports = app;
