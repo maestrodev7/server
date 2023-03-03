@@ -1,6 +1,6 @@
 const express = require('express');
 const stuffRoutes = require('./routes/stuff');
-//const streamRoutes = require('./routes/stream');
+const streamRoutes = require('./routes/stream');
 const app = express();
 
 
