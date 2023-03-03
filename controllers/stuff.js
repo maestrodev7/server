@@ -53,7 +53,7 @@ var path = 'assets/jfk.mp4';
   }
 
   exports.image= (req, res) => {
-    Stream = require("node-rtsp-stream-jsmpeg");
+    Stream = require("node-rtsp-stream");
     stream = new Stream({
       name: "Bunny",
       // streamUrl: "rtsp://YOUR_IP:PORT",
