@@ -53,18 +53,70 @@ var path = 'assets/jfk.mp4';
   }
 
   exports.image= (req, res) => {
-    Stream = require("node-rtsp-stream");
-    stream = new Stream({
-      name: "Bunny",
-      // streamUrl: "rtsp://YOUR_IP:PORT",
-      streamUrl: "rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mp4",
-      wsPort: 9999,
-      ffmpegOptions: { // options ffmpeg flags
-        '-stats': '', // an option with no neccessary value uses a blank string
-        '-r': 30 // options with required values specify the value after the key
+    const net = require('node:net')
+    const child = require('node:child_process')
+    
+  function onSpawnError(data) {
+      console.log(data.toString());
+  }
+  
+  function onSpawnExit(code) {
+      if (code != null) {
+          console.log('GStreamer error, exit code ' + code);
       }
+  }
+    var date = new Date();
+    res.writeHead(200, {
+      'Date': date.toUTCString(),
+      'Connection': 'close',
+      'Cache-Control': 'private',
+      'Content-Type': 'video/webm'
+  });
+  var tcpServer = net.createServer(function (socket) {
+    socket.on('data', function (data) {
+        res.write(data);
     });
-    
-    
-res.send(stream)
+    socket.on('close', function (had_error) {
+        res.end();
+    });
+});
+
+tcpServer.maxConnections = 1;
+tcpServer.listen(function () {
+  console.log("Connection started.");
+  if (gstMuxer == undefined) {
+    console.log("inside gstMuxer == undefined");
+    var cmd = 'gst-launch-1.0';
+    var args =
+        ['autovideosrc',
+            '!', 'video/x-raw,framerate=30/1',
+            '!', 'videoconvert',
+            '!', 'queue', 'leaky=1',
+            '!', 'vp8enc',
+            '!', 'queue', 'leaky=1',
+            '!', 'm.', 'autoaudiosrc',
+            '!', 'queue', 'leaky=1',
+            '!', 'audioconvert',
+            '!', 'vorbisenc',
+            '!', 'queue', 'leaky=1',  
+            '!', 'm.', 'webmmux', 'name=m', 'streamable=true',
+            '!', 'queue', 'leaky=1',
+            '!', 'tcpclientsink', 'host=localhost',
+            'port=' + tcpServer.address().port];
+  console.log(tcpServer.address().port);
+    var gstMuxer = child.spawn(cmd, args);
+  
+    gstMuxer.stderr.on('data', onSpawnError);
+    gstMuxer.on('exit', onSpawnExit);
+  
+}
+else {
+    console.log("New GST pipeline rejected because gstMuxer != undefined.");
+}
+ 
+  res.connection.on('close', function () {
+      gstMuxer.kill();
+  });
+});
+
   }
